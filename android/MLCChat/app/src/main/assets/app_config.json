@@ -1,0 +1,13 @@
+{
+  "model_libs": [
+    "gemma_2b"
+  ],
+  "model_list": [
+    {
+      "model_id": "gemma-2b-it-q4f16_1-MLC",
+      "model_lib": "gemma_q4f16_1_0619fb425cb5c22ecfb27b655043d1ff",
+      "model_url": "https://huggingface.co/mlc-ai/gemma-2b-it-q4f16_1-MLC",
+      "estimated_vram_bytes": 3000000000
+    }
+  ]
+}

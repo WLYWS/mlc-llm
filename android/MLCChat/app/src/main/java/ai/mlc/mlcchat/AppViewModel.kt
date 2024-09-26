@@ -23,6 +23,7 @@ import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessage
+import android.util.Log
 import kotlinx.coroutines.*
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -89,6 +90,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             appConfigFile.readText()
         }
+        Log.d("AppViewModel", "loadAppConfig: $jsonString")
         appConfig = gson.fromJson(jsonString, AppConfig::class.java)
         appConfig.modelLibs = emptyList<String>().toMutableList()
         modelList.clear()
