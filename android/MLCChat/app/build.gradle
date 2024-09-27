@@ -11,19 +11,47 @@ android {
         applicationId "ai.mlc.mlcchat"
         minSdk 26
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode VERSION_CODE.toInteger()
+        versionName VERSION_NAME
 
+        // ndk {
+        //     abiFilters "arm64-v8a"
+        // }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
         }
     }
-
-    buildTypes {
+    signingConfigs {
+        debug {
+            storeFile file(APP_DEBUG_STORE_FILE)
+            storePassword APP_DEBUG_STORE_PASSWORD
+            keyAlias APP_DEBUG_KEY_ALIAS
+            keyPassword APP_DEBUG_KEY_PASSWORD
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
         release {
+            storeFile file(APP_RELEASE_STORE_FILE)
+            storePassword APP_RELEASE_STORE_PASSWORD
+            keyAlias APP_RELEASE_KEY_ALIAS
+            keyPassword APP_RELEASE_KEY_PASSWORD
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
+    buildTypes {
+        debug {
+            debuggable true
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        release {
+            debuggable false
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
@@ -72,4 +100,10 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-tooling'
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
 
+
+    implementation platform("com.squareup.okhttp3:okhttp-bom:4.9.1")
+    implementation "com.squareup.okhttp3:okhttp"
+
+    // api 'com.logutil.logutil:psytoolsset:0.1.2'
+    // api 'com.punet.punetwork:punetwork:0.1.1'
 }

@@ -1,12 +1,15 @@
 package ai.mlc.mlcchat
 
+import ai.mlc.mlcchat.hl.PromptUtil
 import ai.mlc.mlcllm.MLCEngine
 import ai.mlc.mlcllm.OpenAIProtocol
+import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessage
 import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.toMutableStateList
@@ -14,6 +17,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -22,9 +28,6 @@ import java.nio.channels.Channels
 import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.concurrent.thread
-import ai.mlc.mlcllm.OpenAIProtocol.ChatCompletionMessage
-import android.util.Log
-import kotlinx.coroutines.*
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val modelList = emptyList<ModelState>().toMutableStateList()
@@ -297,8 +300,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         fun handleClear() {
             require(
                 modelInitState.value == ModelInitState.Downloading ||
-                        modelInitState.value == ModelInitState.Paused ||
-                        modelInitState.value == ModelInitState.Finished
+                    modelInitState.value == ModelInitState.Paused ||
+                    modelInitState.value == ModelInitState.Finished
             )
             switchToClearing()
         }
@@ -322,8 +325,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         fun handleDelete() {
             require(
                 modelInitState.value == ModelInitState.Downloading ||
-                        modelInitState.value == ModelInitState.Paused ||
-                        modelInitState.value == ModelInitState.Finished
+                    modelInitState.value == ModelInitState.Paused ||
+                    modelInitState.value == ModelInitState.Finished
             )
             switchToDeleting()
         }
@@ -431,9 +434,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             ++progress.value
             require(
                 modelInitState.value == ModelInitState.Downloading ||
-                        modelInitState.value == ModelInitState.Pausing ||
-                        modelInitState.value == ModelInitState.Clearing ||
-                        modelInitState.value == ModelInitState.Deleting
+                    modelInitState.value == ModelInitState.Pausing ||
+                    modelInitState.value == ModelInitState.Clearing ||
+                    modelInitState.value == ModelInitState.Deleting
             )
             if (modelInitState.value == ModelInitState.Downloading) {
                 if (remainingTasks.isEmpty()) {
@@ -513,6 +516,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private var modelPath = ""
         private val executorService = Executors.newSingleThreadExecutor()
         private val viewModelScope = CoroutineScope(Dispatchers.Main + Job())
+        private val aiScope = CoroutineScope(Dispatchers.IO)
         private fun mainResetChat() {
             executorService.submit {
                 callBackend { engine.reset() }
@@ -662,63 +666,77 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        fun requestGenerate(prompt: String) {
+        fun requestGenerate(prompt: String, callback: PromptUtil.OnAIResponseListener? = null) {
             require(chatable())
             switchToGenerating()
             appendMessage(MessageRole.User, prompt)
             appendMessage(MessageRole.Assistant, "")
 
+            // 清空历史，每一条都独立
+            historyMessages.clear()
             executorService.submit {
-                historyMessages.add(ChatCompletionMessage(
-                    role = OpenAIProtocol.ChatCompletionRole.user,
-                    content = prompt
-                ))
+                historyMessages.add(
+                    ChatCompletionMessage(
+                        role = OpenAIProtocol.ChatCompletionRole.user,
+                        content = prompt
+                    )
+                )
 
-                viewModelScope.launch {
+                aiScope.launch {
+                    Log.i("MLCChat", "1. 开始思考")
                     val responses = engine.chat.completions.create(
                         messages = historyMessages,
                         stream_options = OpenAIProtocol.StreamOptions(include_usage = true)
                     )
-
+                    // viewModelScope.launch {
                     var finishReasonLength = false
                     var streamingText = ""
 
+                    Log.i("MLCChat", "2. 开始回答")
                     for (res in responses) {
                         if (!callBackend {
-                            for (choice in res.choices) {
-                                choice.delta.content?.let { content ->
-                                    streamingText += content.asText()
-                                }
-                                choice.finish_reason?.let { finishReason ->
-                                    if (finishReason == "length") {
-                                        finishReasonLength = true
+                                for (choice in res.choices) {
+                                    choice.delta.content?.let { content ->
+                                        streamingText += content.asText()
+                                    }
+                                    choice.finish_reason?.let { finishReason ->
+                                        if (finishReason == "length") {
+                                            finishReasonLength = true
+                                        }
                                     }
                                 }
-                            }
-                            updateMessage(MessageRole.Assistant, streamingText)
-                            res.usage?.let { finalUsage ->
-                                report.value = finalUsage.extra?.asTextLabel() ?: ""
-                            }
-                            if (finishReasonLength) {
-                                streamingText += " [output truncated due to context length limit...]"
                                 updateMessage(MessageRole.Assistant, streamingText)
-                            }
-                        });
+                                res.usage?.let { finalUsage ->
+                                    report.value = finalUsage.extra?.asTextLabel() ?: ""
+                                }
+                                if (finishReasonLength) {
+                                    streamingText += " [output truncated due to context length limit...]"
+                                    updateMessage(MessageRole.Assistant, streamingText)
+                                }
+                            });
                     }
                     if (streamingText.isNotEmpty()) {
-                        historyMessages.add(ChatCompletionMessage(
-                            role = OpenAIProtocol.ChatCompletionRole.assistant,
-                            content = streamingText
-                        ))
+                        // historyMessages.add(
+                        //     ChatCompletionMessage(
+                        //         role = OpenAIProtocol.ChatCompletionRole.assistant,
+                        //         content = streamingText
+                        //     )
+                        // )
                         streamingText = ""
                     } else {
-                        if (historyMessages.isNotEmpty()) {
-                            historyMessages.removeAt(historyMessages.size - 1)
-                        }
+                        // if (historyMessages.isNotEmpty()) {
+                        //     historyMessages.removeAt(historyMessages.size - 1)
+                        // }
+                        Log.i("MLCChat", "streamingText: $streamingText")
                     }
 
                     if (modelChatState.value == ModelChatState.Generating) switchToReady()
+
+                    Log.i("MLCChat", "3. 回答结束")
+                    // Log.i("MLCChat", "q: $prompt a: $streamingText")
+                    callback?.onAIResponse(streamingText)
                 }
+                // }
             }
         }
 
@@ -737,8 +755,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         fun interruptable(): Boolean {
             return modelChatState.value == ModelChatState.Ready
-                    || modelChatState.value == ModelChatState.Generating
-                    || modelChatState.value == ModelChatState.Falied
+                || modelChatState.value == ModelChatState.Generating
+                || modelChatState.value == ModelChatState.Falied
         }
     }
 }

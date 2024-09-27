@@ -1,5 +1,6 @@
 package ai.mlc.mlcchat
 
+import ai.mlc.mlcchat.hl.PromptUtil
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -225,6 +227,9 @@ fun MessageView(messageData: MessageData) {
 @Composable
 fun SendMessageView(chatState: AppViewModel.ChatState) {
     val localFocusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    PromptUtil.init(context, chatState)
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -244,7 +249,8 @@ fun SendMessageView(chatState: AppViewModel.ChatState) {
         IconButton(
             onClick = {
                 localFocusManager.clearFocus()
-                chatState.requestGenerate(text)
+                PromptUtil.doNext()
+                // chatState.requestGenerate(text)
                 text = ""
             },
             modifier = Modifier

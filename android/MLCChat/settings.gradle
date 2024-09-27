@@ -11,6 +11,48 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url "https://jitpack.io" }
+
+        // 阿里云云效仓库：https://maven.aliyun.com/mvn/guide
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://jitpack.io" }
+        google()
+//        jcenter()
+        mavenCentral()
+        maven {
+            url "http://52.82.80.121:8081/repository/smart_group/"
+            allowInsecureProtocol(true)
+        }
+        maven {
+            url "http://52.83.147.12:8081/repository/smart_group/"
+            allowInsecureProtocol(true)
+        }
+        // 反馈
+        maven { url "https://raw.githubusercontent.com/WLYWS/Sandglass_Android_Bundles/main" }
+        repositories {
+            maven { url 'https://maven.aliyun.com/repository/public' }
+            maven {
+                credentials {
+                    username '5f45c9022d5925c55bc00c6f'
+                    password 'NQwPJAa42nlV'
+                }
+                url 'https://packages.aliyun.com/maven/repository/2028284-release-awMPKn/'
+            }
+            maven {
+                credentials {
+                    username '5f45c9022d5925c55bc00c6f'
+                    password 'NQwPJAa42nlV'
+                }
+                url 'https://packages.aliyun.com/maven/repository/2028284-snapshot-gw4bH1/'
+            }
+
+        }
+        
+        maven {
+            url uri('http://52.83.147.12:8081/repository/g-life_group/')
+            allowInsecureProtocol(true)
+        }
     }
 }
 rootProject.name = "MLCChat"

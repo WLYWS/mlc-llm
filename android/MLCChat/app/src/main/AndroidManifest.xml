@@ -10,6 +10,7 @@
         tools:ignore="ScopedStorage" />
 
     <application
+        android:name=".MyApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -21,11 +22,12 @@
         tools:targetApi="31">
         <uses-native-library
             android:name="libOpenCL.so"
-            android:required="false"/>
+            android:required="false" />
 
         <uses-native-library
             android:name="libOpenCL-pixel.so"
             android:required="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
